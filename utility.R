@@ -233,23 +233,23 @@ pconseqdecrease <- function(...) {
   do.call(pconseqtrue,plesschain(...))
 }
 rowvolatility <- function(char_fields,dt) {
-  dt[,do.call(pcv,.SD),.SDcols=char_field]
+  dt[,do.call(pcv,.SD),.SDcols=char_fields]
 }
 #Call these with 1:12, which is newest first
 rowtrend <- function(char_fields,dt) {
   char_fields <- char_fields[length(char_fields):1]
-  dt[,do.call(pbeta,.SD),.SDcols=char_field]
+  dt[,do.call(pbeta,.SD),.SDcols=char_fields]/dt[[char_fields[[1]]]]
 }
 rowconseqincrease <- function(char_fields,dt) {
-  dt[,do.call(pconseqdecrease,.SD),.SDcols=char_field]
+  dt[,do.call(pconseqdecrease,.SD),.SDcols=char_fields]
 }
 rowconseqdecrease <- function(char_fields,dt) {
-  dt[,do.call(pconseqincrease,.SD),.SDcols=char_field]
+  dt[,do.call(pconseqincrease,.SD),.SDcols=char_fields]
 }
 rowconseqchange <- function(char_fields,dt) {
   increase <- rowconseqincrease(char_fields,dt)
   decrease <- rowconseqdecrease(char_fields,dt)
   decrease <- decrease * -1
-  decrease[decrease==0] <- increase[decrease==0]
+  decrease[which(decrease==0)] <- increase[which(decrease==0)]
   decrease
 }
