@@ -246,3 +246,10 @@ rowconseqincrease <- function(char_fields,dt) {
 rowconseqdecrease <- function(char_fields,dt) {
   dt[,do.call(pconseqincrease,.SD),.SDcols=char_field]
 }
+rowconseqchange <- function(char_fields,dt) {
+  increase <- rowconseqincrease(char_fields,dt)
+  decrease <- rowconseqdecrease(char_fields,dt)
+  decrease <- decrease * -1
+  decrease[decrease==0] <- increase[decrease==0]
+  decrease
+}
