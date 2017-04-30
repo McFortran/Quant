@@ -91,8 +91,16 @@ priorqtr <- function(date,periods) {
   paste0(as.integer(y)+yearoffset,"-",months[monthno],"-",days[monthno])
 }
 lookbehindqtr <- function(nm,field,periods,dt) {
-  command <- paste0(field,"[match(as.Date(priorqtr(calendardate,periods)),calendardate)]")
+  coerce_int64 <- function(cmd) {
+    if(is.integer64(dt[[field]])) {
+      paste0("as.numeric(",cmd,")")
+    } else {
+      cmd
+    }
+  }
+  command <- paste0(coerce_int64(field),"[match(as.Date(priorqtr(calendardate,periods)),calendardate)]")
   print(nm)
+  print(command)
   dt[,(nm):=eval(parse(text=command)),by=ticker]
   dt
 }
