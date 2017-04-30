@@ -127,3 +127,122 @@ calc_restatement_generator_yearly <- function(dimension) {
     restatement(field[dimension=="MRY"],field[dimension=="ARY"])
   }
 }
+#inter-record calculations - quarterly
+psum <- function(...) {
+  args <- list(...)
+  val <- rep(0,length(args[[1]]))
+  for(i in 1:length(args)) {
+    ival <- args[[i]]
+    ival[is.na(ival)] <- 0
+    val <- val+ival
+  }
+  val
+}
+pmult <- function(...) {
+  args <- list(...)
+  val <- rep(0,length(args[[1]]))
+  for(i in 1:length(args)) {
+    ival <- args[[i]]
+    ival[is.na(ival)] <- 1
+    val <- val*ival
+  }
+  val
+}
+pnzlength <- function(...) {
+  args <- list(...)
+  val <- rep(0,length(args[[1]]))
+  for(i in 1:length(args)) {
+    ival <- args[[i]]
+    ival[is.na(ival)] <- 0
+    ival[!is.na(ival)] <- 1
+    val <- val+ival
+  }
+  val
+}
+pmean <- function(...) {
+  psum(...)/pnzlength(...)
+}
+pvar <- function(...) {
+  args <- list(...)
+  for(i in 1:length(args)) {
+    args[[i]] <- (args[[i]]-pmean(...)) ^2
+  }
+  n <- pnzlength(...)
+  do.call(pmean,args)*n/(n-1)
+}
+psd <- function(...) {
+  sqrt(pvar(...))
+}
+pcv <- function(...) {
+  psd(...)/pmean(...)
+}
+#covariance of y and 1:length(y)
+plcov <- function(...) {
+  args <- list(...)
+  xargs <- args
+  xyargs <- args
+  for(i in 1:length(args)) {
+    xargs[[i]] <- i
+    xyargs[[i]] <- xargs[[i]]*args[[i]]
+  }
+  ey <- pmean(...)
+  ex <- do.call(pmean,xargs)
+  exy <- do.call(pmean,xyargs)
+  n <- pnzlength(...)
+  (exy-ex*ey)*n/(n-1)
+}
+pbeta <- function(...) {
+  args <- list(...)
+  xargs <- args
+  for(i in 1:length(args)) {
+    xargs[[i]] <- i
+  }
+  plcov(...)/do.call(pvar,xargs)
+}
+pconseqtrue <- function(...) {
+  args <- list(...)
+  idx <- rep(0,length(args[[1]]))
+  cumtrue <- rep(TRUE,length(idx))
+  for(i in 1:length(args)) {
+    cumtrue <- cumtrue & args[[i]]
+    idx <- idx + cumtrue
+  }
+  idx
+}
+# 3 2 1 -> TRUE TRUE, 1 3 2 4 -> FALSE TRUE FALSE
+pgreaterchain <- function(...) {
+  args <- list(...)
+  b <- c()
+  for(i in 1:(length(args)-1)) {
+    b[[i]] <- args[[i]] > args[[i+1]]
+  }
+  b
+}
+plesschain  <- function(...) {
+  args <- list(...)
+  b <- c()
+  for(i in 1:(length(args)-1)) {
+    b[[i]] <- args[[i]] < args[[i+1]]
+  }
+  b
+}
+pconseqincrease <- function(...) {
+  do.call(pconseqtrue,pgreaterchain(...))
+}
+pconseqdecrease <- function(...) {
+  do.call(pconseqtrue,plesschain(...))
+}
+rowvolatility <- function(char_fields,dt) {
+  dt[,do.call(pcv,.SD),.SDcols=char_field]
+}
+#Call these with 1:12, which is newest first
+rowtrend <- function(char_fields,dt) {
+  char_fields <- char_fields[length(char_fields):1]
+  dt[,do.call(pbeta,.SD),.SDcols=char_field]
+}
+rowconseqincrease <- function(char_fields,dt) {
+  dt[,do.call(pconseqdecrease,.SD),.SDcols=char_field]
+}
+rowconseqdecrease <- function(char_fields,dt) {
+  dt[,do.call(pconseqincrease,.SD),.SDcols=char_field]
+}
